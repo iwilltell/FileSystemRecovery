@@ -63,7 +63,6 @@ def api_create_file():
             data.get("path", data.get("name", "")),
             data.get("content", "")
         )
-
         return jsonify({"ok": True, "file": item}), 201
 
     except (ValueError, RuntimeError) as exc:
@@ -91,7 +90,6 @@ def api_update_file(file_path):
             file_path,
             data.get("content", "")
         )
-
         return jsonify({"ok": True, "file": item})
 
     except (KeyError, ValueError, RuntimeError) as exc:
@@ -117,7 +115,6 @@ def api_rename_file():
             data.get("old_path", ""),
             data.get("new_path", "")
         )
-
         return jsonify({"ok": True, "file": item})
 
     except (KeyError, ValueError) as exc:
@@ -132,13 +129,37 @@ def api_create_directory():
         directory = file_manager.create_directory(
             data.get("path", "")
         )
-
         return jsonify({
             "ok": True,
             "directory": directory
         }), 201
 
     except ValueError as exc:
+        return jsonify({"ok": False, "error": str(exc)}), 400
+
+
+@app.post("/api/directories/rename")
+def api_rename_directory():
+    data = request.get_json(silent=True) or {}
+
+    try:
+        result = file_manager.rename_directory(
+            data.get("old_path", ""),
+            data.get("new_path", "")
+        )
+        return jsonify({"ok": True, "result": result})
+
+    except (KeyError, ValueError) as exc:
+        return jsonify({"ok": False, "error": str(exc)}), 400
+
+
+@app.delete("/api/directories/<path:directory_path>")
+def api_delete_directory(directory_path):
+    try:
+        file_manager.delete_directory(directory_path)
+        return jsonify({"ok": True})
+
+    except (KeyError, ValueError) as exc:
         return jsonify({"ok": False, "error": str(exc)}), 400
 
 
