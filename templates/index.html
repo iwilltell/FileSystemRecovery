@@ -1,0 +1,50 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>File System Recovery Lab</title>
+<link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+<div class="layout">
+<aside class="sidebar">
+  <div class="brand"><span class="logo">▦</span><div><b>FS Recovery</b><small>OPERATING SYSTEMS LAB</small></div></div>
+  <nav><a class="active" href="#overview">Overview</a><a href="#files">File manager</a><a href="#recovery">Recovery center</a><a href="#optimization">Optimization</a></nav>
+  <div class="safety"><span>● SIMULATION MODE</span><small>No physical disk is modified.</small></div>
+</aside>
+<main id="overview">
+<header><div><p class="eyebrow">CSE316 · OPERATING SYSTEMS</p><h1>File System Control Center</h1><p class="muted">Manage simulated storage, inspect disk usage and test recovery workflows.</p></div><span class="online">● SYSTEM ONLINE</span></header>
+<section class="stats">
+  <article><span>Total blocks</span><strong id="total">—</strong><small>Simulated capacity</small></article>
+  <article><span>Used blocks</span><strong id="used">—</strong><small>Allocated storage</small></article>
+  <article><span>Free blocks</span><strong id="free">—</strong><small>Available storage</small></article>
+  <article><span>Disk utilization</span><strong id="percent">—</strong><small>Current allocation</small></article>
+</section>
+<section class="panel">
+ <div class="panel-title"><div><p class="eyebrow">STORAGE MAP</p><h2>Block allocation</h2></div><div class="legend"><span>🟦 Used</span><span>⬛ Free</span></div></div>
+ <div id="blockmap" class="blockmap"></div>
+</section>
+<div class="columns">
+<section class="panel" id="files">
+ <p class="eyebrow">MODULE 01</p><h2>File manager</h2>
+ <form id="file-form"><label>File path<input name="path" placeholder="/notes/example.txt" required></label><label>Content<textarea name="content" placeholder="Enter file content"></textarea></label><button>Create file</button></form>
+ <div class="subhead">Stored files</div><div id="file-list" class="file-list"></div>
+ <div class="subhead">Create directory</div><form id="dir-form" class="inline-form"><input name="path" placeholder="/documents" required><button>Create</button></form>
+ <div id="directory-list" class="chips"></div>
+</section>
+<section class="panel" id="recovery">
+ <p class="eyebrow">MODULE 02</p><h2>Recovery center</h2><p class="muted">Create an interrupted transaction, then replay the journal to restore it.</p>
+ <button class="danger" id="crash">Simulate disk crash</button><button class="secondary" id="recover">Run recovery</button>
+ <div id="recovery-message" class="message">No recovery operation run yet.</div>
+ <div class="subhead">Transaction journal</div><div id="journal" class="journal"></div>
+</section>
+</div>
+<section class="panel" id="optimization">
+ <p class="eyebrow">MODULE 03</p><h2>Optimization & performance</h2><p class="muted">Inspect free-space fragmentation, compact allocated blocks and benchmark file operations.</p>
+ <button id="analyze" class="secondary">Analyze fragmentation</button><button id="optimize">Optimize disk</button><button id="benchmark" class="secondary">Run benchmark</button>
+ <pre id="optimization-result">Ready for analysis.</pre>
+</section>
+<footer>File System Recovery and Optimization Tool · Educational simulation</footer>
+</main></div>
+<script src="{{ url_for('static', filename='script.js') }}"></script>
+</body></html>
