@@ -1,68 +1,282 @@
 # File System Recovery and Optimization Tool
 
-A Python Flask web application that simulates core file-system concepts:
-bitmap-based free-space management, hierarchical directories, file operations,
-a write-ahead recovery journal, simulated crash recovery, compaction, and
-basic read/write timing measurements.
+A Python and Flask-based educational web application that simulates important operating system file-system concepts.
 
-## Safety
+The project demonstrates disk block allocation, file and directory management, transaction journaling, simulated crash recovery, fragmentation analysis, disk compaction, and performance measurement.
 
-This is an educational simulation. It only changes JSON data under `storage/`.
-It does not inspect, repair, format, or modify real disks or operating-system
-file systems.
+## 1. Project Overview
 
-## Requirements
+The application uses a simulated disk with a fixed number of blocks. Files are stored as metadata and block references in JSON files.
 
-- Python 3.10+
+A browser-based dashboard allows users to interact with the simulated file system and observe how allocation, recovery, and optimization work.
+
+**Important:** This is an educational simulation. It does not access, repair, format, or modify physical disks or real operating-system file systems.
+
+## 2. Main Features
+
+- **Disk management:** Bitmap-based block allocation and release.
+- **File management:** Create, read, update, delete, rename, and move files.
+- **Directory management:** Create, rename, list, and delete directories, including nested directories.
+- **Transaction journal:** Records file-system operations and their status.
+- **Crash recovery:** Simulates a pending transaction and replays supported operations.
+- **Fragmentation analysis:** Reports free-space runs, allocated blocks, and fragmentation details.
+- **Disk optimization:** Compacts allocated blocks while preserving file contents and metadata.
+- **Optimization history:** Keeps an in-memory record of optimization runs.
+- **Performance benchmark:** Measures simulated file read and write operation times.
+- **Web dashboard:** Provides a browser-based interface for interacting with the simulator.
+
+## 3. Technologies Used
+
+| Technology     | Purpose                                |
+| -------------- | -------------------------------------- |
+| Python         | Application logic                      |
+| Flask          | Web framework and API                  |
+| HTML           | Dashboard structure                    |
+| CSS            | Dashboard styling                      |
+| JavaScript     | Frontend interactions                  |
+| JSON           | Simulated disk and journal persistence |
+| pytest         | Automated testing                      |
+| Git and GitHub | Version control                        |
+
+## 4. Project Structure
+
+```text
+FileSystemRecovery/
+│
+├── app.py
+├── requirements.txt
+├── README.md
+├── .gitignore
+│
+├── modules/
+│   ├── __init__.py
+│   ├── disk_manager.py
+│   ├── file_manager.py
+│   ├── recovery.py
+│   └── optimizer.py
+│
+├── templates/
+│   └── index.html
+│
+├── static/
+│   ├── style.css
+│   └── script.js
+│
+├── storage/
+│   └── .gitkeep
+│
+├── tests/
+│   ├── conftest.py
+│   ├── test_app.py
+│   ├── test_disk_manager.py
+│   ├── test_file_manager.py
+│   ├── test_optimizer.py
+│   └── test_recovery.py
+│
+└── docs/
+    └── flowchart.md
+```
+
+## 5. Requirements
+
+- Python 3.10 or later
 - Flask 3.x
-- pytest 8.x (for tests)
+- pytest 8.x for testing
+- Windows, Linux, or macOS
 
-## Run on Windows PowerShell
+## 6. Installation and Setup
+
+### Step 1: Clone the repository
+
+```bash
+git clone https://github.com/iwilltell/FileSystemRecovery.git
+cd FileSystemRecovery
+```
+
+### Step 2: Create a virtual environment
+
+Windows PowerShell:
 
 ```powershell
 python -m venv venv
 .\venv\Scripts\Activate.ps1
+```
+
+Linux or macOS:
+
+```bash
+python3 -m venv venv
+source venv/bin/activate
+```
+
+### Step 3: Install dependencies
+
+```bash
 pip install -r requirements.txt
+```
+
+### Step 4: Start the application
+
+```bash
 python app.py
 ```
 
-Open http://127.0.0.1:5000.
+Open the following address in your browser:
 
-## Run tests
+http://127.0.0.1:5000
 
-```powershell
-pytest -v
+## 7. Running Automated Tests
+
+Run the complete test suite:
+
+```bash
+python -m pytest -v
 ```
 
-## Main components
+Run only the Flask API integration tests:
 
-- `modules/disk_manager.py`: fixed-size simulated disk, bitmap allocation,
-  release, and persistent JSON metadata.
-- `modules/file_manager.py`: file CRUD operations and nested directories.
-- `modules/recovery.py`: write-ahead journal and deterministic crash/replay demo.
-- `modules/optimizer.py`: fragmentation indicator, block compaction, and timing.
-- `templates/` and `static/`: responsive browser dashboard.
+```bash
+python -m pytest tests/test_app.py -v
+```
 
-## Recovery demonstration
+The test suite covers disk management, file operations, directory operations, recovery, optimization, and application API workflows.
 
-1. Create a few files.
-2. Click **Simulate disk crash**. The application writes a pending CREATE
-   transaction to the journal but does not apply it to the simulated disk.
-3. Click **Run recovery**. The recovery manager replays the pending operation.
-4. Inspect the file list and transaction journal.
+Tests use temporary storage so they do not need to modify the application's normal disk and journal data.
 
-## Deployment
+## 8. API Documentation
 
-For a public deployment, use a persistent disk/volume because the simulator
-stores state in local JSON files. Set the hosting provider's start command to
-`gunicorn app:app` and add `gunicorn` to requirements. Do not deploy the Flask
-development server as a production server.
+The Flask application exposes the following endpoints.
 
-## Limitations and future scope
+| Method | Endpoint                    | Purpose                    |
+| ------ | --------------------------- | -------------------------- |
+| GET    | `/`                         | Load dashboard             |
+| GET    | `/api/status`               | View disk status           |
+| GET    | `/api/blocks`               | View allocation bitmap     |
+| GET    | `/api/files`                | List files                 |
+| POST   | `/api/files`                | Create a file              |
+| GET    | `/api/files/<path>`         | Read a file                |
+| PUT    | `/api/files/<path>`         | Update a file              |
+| DELETE | `/api/files/<path>`         | Delete a file              |
+| POST   | `/api/files/rename`         | Rename or move a file      |
+| GET    | `/api/directories`          | List directories           |
+| POST   | `/api/directories`          | Create a directory         |
+| POST   | `/api/directories/rename`   | Rename or move a directory |
+| DELETE | `/api/directories/<path>`   | Delete a directory         |
+| GET    | `/api/journal`              | View transaction journal   |
+| POST   | `/api/crash`                | Simulate a disk crash      |
+| POST   | `/api/recover`              | Execute recovery           |
+| GET    | `/api/recovery/report`      | View recovery report       |
+| GET    | `/api/fragmentation`        | Analyze fragmentation      |
+| POST   | `/api/optimize`             | Compact allocated blocks   |
+| GET    | `/api/optimization/history` | View optimization history  |
+| GET    | `/api/benchmark`            | Run read/write benchmarks  |
 
-This project is a teaching simulator, not a production file system. Its
-journal demonstration covers a controlled CREATE transaction; it is not a
-full POSIX journaling implementation. Performance timings are local Python
-operation timings and are not physical disk benchmarks. Future work could add
-checksums, snapshots, concurrent-access locking, richer allocation policies,
-and a persistent database.
+### Example API requests
+
+Create a file:
+
+```json
+{
+  "path": "/notes.txt",
+  "content": "Operating Systems Project"
+}
+```
+
+Update a file:
+
+```json
+{
+  "content": "Updated project content"
+}
+```
+
+Rename a file:
+
+```json
+{
+  "old_path": "/notes.txt",
+  "new_path": "/updated-notes.txt"
+}
+```
+
+Create a directory:
+
+```json
+{
+  "path": "/assignments"
+}
+```
+
+Rename a directory:
+
+```json
+{
+  "old_path": "/assignments",
+  "new_path": "/college-work"
+}
+```
+
+Filter the journal using query parameters:
+
+```text
+/api/journal?operation=CREATE&status=COMPLETED
+```
+
+## 9. Recovery Demonstration
+
+1. Start the application.
+2. Create files using the dashboard.
+3. Select **Simulate disk crash**.
+4. The recovery manager records a pending CREATE transaction.
+5. Select **Run recovery**.
+6. The recovery manager attempts to replay the pending transaction.
+7. Inspect the file list, journal, and recovery report.
+
+This demonstrates a controlled recovery workflow using simulated disk data.
+
+## 10. Disk Optimization Demonstration
+
+1. Create several files.
+2. Delete one or more files to create free-space gaps.
+3. Open the fragmentation analysis.
+4. Observe the allocation and free-space statistics.
+5. Run disk optimization.
+6. Compare the before-and-after fragmentation reports.
+7. Inspect optimization history.
+
+The compaction process rearranges simulated block references while preserving file contents.
+
+## 11. Limitations
+
+- The application simulates file-system behavior rather than operating on physical storage devices.
+- Crash recovery demonstrates a controlled CREATE transaction and is not a complete production journaling implementation.
+- Performance measurements represent local Python operation timings, not physical disk benchmarks.
+- Optimization history is stored in application memory and resets when the application restarts.
+- The application is designed for educational demonstration rather than production deployment.
+
+## 12. Future Scope
+
+Possible improvements include:
+
+- Persistent optimization history.
+- File checksums and data-integrity verification.
+- Snapshot and rollback support.
+- Concurrent-access protection.
+- Additional block-allocation algorithms.
+- More detailed recovery scenarios.
+- Database-backed metadata storage.
+- Improved visualization of disk allocation.
+
+## 13. References
+
+- Operating Systems course material.
+- Python documentation: https://docs.python.org/3/
+- Flask documentation: https://flask.palletsprojects.com/
+- pytest documentation: https://docs.pytest.org/
+- Git documentation: https://git-scm.com/doc
+
+## 14. Academic and Development Note
+
+This project was developed as an educational Operating Systems project. Development tools, including AI assistance where applicable, should be acknowledged accurately in the submitted project report according to the institution's academic guidelines.
+
+The student should understand the implementation, testing approach, design decisions, and limitations before the project demonstration and viva.
