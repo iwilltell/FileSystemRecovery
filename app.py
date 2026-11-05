@@ -1,4 +1,3 @@
-
 from pathlib import Path
 
 from flask import Flask, jsonify, render_template, request
@@ -264,9 +263,21 @@ def api_journal():
 
 @app.post("/api/optimize")
 def api_optimize():
+    try:
+        return jsonify({
+            "ok": True,
+            "result": optimizer.optimize()
+        })
+
+    except (ValueError, RuntimeError) as exc:
+        return jsonify({"ok": False, "error": str(exc)}), 400
+
+
+@app.get("/api/optimization/history")
+def api_optimization_history():
     return jsonify({
         "ok": True,
-        "result": optimizer.optimize()
+        "history": optimizer.get_history()
     })
 
 
