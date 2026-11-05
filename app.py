@@ -59,10 +59,17 @@ def api_create_file():
     data = request.get_json(silent=True) or {}
 
     try:
-        item = file_manager.create_file(
-            data.get("path", data.get("name", "")),
-            data.get("content", "")
+        path = data.get("path", data.get("name", ""))
+        content = data.get("content", "")
+
+        item = file_manager.create_file(path, content)
+
+        recovery.record_completed(
+            "CREATE",
+            item["path"],
+            {"size": item["size"]}
         )
+
         return jsonify({"ok": True, "file": item}), 201
 
     except (ValueError, RuntimeError) as exc:
@@ -90,6 +97,13 @@ def api_update_file(file_path):
             file_path,
             data.get("content", "")
         )
+
+        recovery.record_completed(
+            "WRITE",
+            item["path"],
+            {"size": item["size"]}
+        )
+
         return jsonify({"ok": True, "file": item})
 
     except (KeyError, ValueError, RuntimeError) as exc:
@@ -100,6 +114,12 @@ def api_update_file(file_path):
 def api_delete_file(file_path):
     try:
         file_manager.delete_file(file_path)
+
+        recovery.record_completed(
+            "DELETE",
+            "/" + file_path.lstrip("/")
+        )
+
         return jsonify({"ok": True})
 
     except (KeyError, ValueError) as exc:
@@ -111,10 +131,17 @@ def api_rename_file():
     data = request.get_json(silent=True) or {}
 
     try:
-        item = file_manager.rename_file(
-            data.get("old_path", ""),
-            data.get("new_path", "")
+        old_path = data.get("old_path", "")
+        new_path = data.get("new_path", "")
+
+        item = file_manager.rename_file(old_path, new_path)
+
+        recovery.record_completed(
+            "RENAME",
+            item["path"],
+            {"old_path": old_path, "new_path": item["path"]}
         )
+
         return jsonify({"ok": True, "file": item})
 
     except (KeyError, ValueError) as exc:
@@ -129,6 +156,9 @@ def api_create_directory():
         directory = file_manager.create_directory(
             data.get("path", "")
         )
+
+        recovery.record_completed("MKDIR", directory)
+
         return jsonify({
             "ok": True,
             "directory": directory
@@ -143,10 +173,22 @@ def api_rename_directory():
     data = request.get_json(silent=True) or {}
 
     try:
-        result = file_manager.rename_directory(
-            data.get("old_path", ""),
-            data.get("new_path", "")
+        old_path = data.get("old_path", "")
+        new_path = data.get("new_path", "")
+
+        result = file_manager.rename_directory(old_path, new_path)
+
+        recovery.record_completed(
+            "RENAME",
+            result["new_path"],
+            {
+                "old_path": result["old_path"],
+                "new_path": result["new_path"],
+                "moved_files": result["moved_files"],
+                "moved_directories": result["moved_directories"]
+            }
         )
+
         return jsonify({"ok": True, "result": result})
 
     except (KeyError, ValueError) as exc:
@@ -157,6 +199,12 @@ def api_rename_directory():
 def api_delete_directory(directory_path):
     try:
         file_manager.delete_directory(directory_path)
+
+        recovery.record_completed(
+            "RMDIR",
+            "/" + directory_path.lstrip("/")
+        )
+
         return jsonify({"ok": True})
 
     except (KeyError, ValueError) as exc:
@@ -189,7 +237,15 @@ def api_recover():
 
 @app.get("/api/journal")
 def api_journal():
-    return jsonify(recovery.get_journal())
+    operation = request.args.get("operation")
+    status = request.args.get("status")
+
+    return jsonify(
+        recovery.get_journal(
+            operation=operation,
+            status=status
+        )
+    )
 
 
 @app.post("/api/optimize")
