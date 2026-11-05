@@ -34,3 +34,17 @@ def test_persistence(tmp_path):
     first.allocate(2)
     second = DiskManager(path, total_blocks=8)
     assert second.status()["used_blocks"] == 2
+
+def test_disk_integrity(disk, tmp_path):
+    disk.files["/test.txt"] = {
+        "content": "hello",
+        "size": 5,
+        "blocks": disk.allocate(1)
+    }
+
+    disk._save()
+
+    result = disk.validate_integrity()
+
+    assert result["valid"] is True
+    assert result["errors"] == []
