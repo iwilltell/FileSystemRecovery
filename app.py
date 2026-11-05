@@ -139,7 +139,10 @@ def api_rename_file():
         recovery.record_completed(
             "RENAME",
             item["path"],
-            {"old_path": old_path, "new_path": item["path"]}
+            {
+                "old_path": old_path,
+                "new_path": item["path"]
+            }
         )
 
         return jsonify({"ok": True, "file": item})
@@ -226,13 +229,24 @@ def api_crash():
 @app.post("/api/recover")
 def api_recover():
     try:
+        message = recovery.recover()
+
         return jsonify({
             "ok": True,
-            "message": recovery.recover()
+            "message": message,
+            "report": recovery.get_recovery_report()
         })
 
-    except RuntimeError as exc:
+    except (RuntimeError, ValueError) as exc:
         return jsonify({"ok": False, "error": str(exc)}), 400
+
+
+@app.get("/api/recovery/report")
+def api_recovery_report():
+    return jsonify({
+        "ok": True,
+        "report": recovery.get_recovery_report()
+    })
 
 
 @app.get("/api/journal")

@@ -12,14 +12,29 @@ class RecoveryManager:
         self.path = Path(journal_path)
         self.path.parent.mkdir(parents=True, exist_ok=True)
         self.file_manager = file_manager
+        self.last_recovery_report = {
+            "total": 0,
+            "committed": 0,
+            "failed": 0,
+            "skipped": 0,
+            "transactions": []
+        }
 
         if not self.path.exists():
             self._write({"transactions": []})
 
     def _read(self):
-        return json.loads(
+        data = json.loads(
             self.path.read_text(encoding="utf-8")
         )
+
+        if not isinstance(data, dict):
+            raise ValueError("Invalid journal format")
+
+        if not isinstance(data.get("transactions"), list):
+            raise ValueError("Journal transactions must be a list")
+
+        return data
 
     def _write(self, data):
         self.path.write_text(
@@ -54,6 +69,9 @@ class RecoveryManager:
             "MKDIR", "RMDIR"
         }
 
+        if not isinstance(operation, str):
+            raise ValueError("Operation must be text")
+
         operation = operation.upper()
 
         if operation not in allowed_operations:
@@ -61,6 +79,9 @@ class RecoveryManager:
 
         if not isinstance(path, str) or not path.strip():
             raise ValueError("A transaction path is required")
+
+        if details is not None and not isinstance(details, dict):
+            raise ValueError("Transaction details must be a dictionary")
 
         journal = self._read()
 
@@ -104,7 +125,8 @@ class RecoveryManager:
             "path": demo_path,
             "content": "This file was restored by journal recovery.",
             "status": "PENDING",
-            "created_at": time.time()
+            "created_at": time.time(),
+            "recovery_attempts": 0
         }
 
         journal["transactions"].append(transaction)
@@ -115,38 +137,103 @@ class RecoveryManager:
             "was journaled but not applied. Recover to replay it."
         )
 
-    def recover(self):
-        """Replay pending transactions and mark them committed."""
+    def _apply_transaction(self, transaction):
+        """Apply a supported pending transaction safely."""
 
-        journal = self._read()
-        recovered = 0
+        operation = transaction.get("operation")
+        path = transaction.get("path")
 
-        for transaction in journal["transactions"]:
-            if transaction["status"] != "PENDING":
-                continue
+        if operation == "CREATE":
+            if not isinstance(path, str) or not path:
+                raise ValueError("CREATE transaction has an invalid path")
 
-            if transaction["operation"] == "CREATE":
-                path = transaction["path"]
+            if path in self.file_manager.entries:
+                existing_content = self.file_manager.read_file(path)
 
-                if path not in self.file_manager.entries:
-                    self.file_manager.create_file(
-                        path,
-                        transaction["content"]
-                    )
+                if existing_content == transaction.get("content"):
+                    return "ALREADY_APPLIED"
 
-            else:
-                raise RuntimeError(
-                    "Unsupported pending transaction: "
-                    f"{transaction['operation']}"
+                raise ValueError(
+                    f"Cannot recover CREATE: another file exists at {path}"
                 )
 
-            transaction["status"] = "COMMITTED"
-            transaction["recovered_at"] = time.time()
-            recovered += 1
+            self.file_manager.create_file(
+                path,
+                transaction.get("content", "")
+            )
 
-        self._write(journal)
+            return "APPLIED"
+
+        raise ValueError(
+            f"Unsupported pending transaction: {operation}"
+        )
+
+    def get_recovery_report(self):
+        """Return the most recent recovery summary."""
+
+        return self.last_recovery_report
+
+    def recover(self):
+        """Recover all pending transactions and produce a report."""
+
+        journal = self._read()
+
+        report = {
+            "total": 0,
+            "committed": 0,
+            "failed": 0,
+            "skipped": 0,
+            "transactions": []
+        }
+
+        for transaction in journal["transactions"]:
+            if transaction.get("status") != "PENDING":
+                report["skipped"] += 1
+                continue
+
+            report["total"] += 1
+            transaction_id = transaction.get("id", "UNKNOWN")
+
+            transaction["recovery_attempts"] = (
+                transaction.get("recovery_attempts", 0) + 1
+            )
+
+            try:
+                result = self._apply_transaction(transaction)
+
+                transaction["status"] = "COMMITTED"
+                transaction["recovered_at"] = time.time()
+                transaction.pop("last_error", None)
+
+                report["committed"] += 1
+
+                report["transactions"].append({
+                    "id": transaction_id,
+                    "status": "COMMITTED",
+                    "result": result
+                })
+
+            except Exception as exc:
+                transaction["last_error"] = str(exc)
+                transaction["last_failed_at"] = time.time()
+
+                report["failed"] += 1
+
+                report["transactions"].append({
+                    "id": transaction_id,
+                    "status": "FAILED",
+                    "error": str(exc)
+                })
+
+            # Save after each transaction so completed work
+            # is not lost if a later transaction fails.
+            self._write(journal)
+
+        self.last_recovery_report = report
 
         return (
-            f"Recovery complete. Replayed {recovered} "
-            "pending transaction(s)."
+            f"Recovery complete. Replayed {report['committed']} "
+            f"pending transaction(s). "
+            f"Failed: {report['failed']}. "
+            f"Skipped: {report['skipped']}."
         )
